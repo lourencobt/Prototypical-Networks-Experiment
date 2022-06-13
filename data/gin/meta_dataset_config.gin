@@ -1,6 +1,7 @@
 import meta_dataset.data.config
 import meta_dataset.data.decoder
 
+include 'gin/datasets.gin'
 include 'gin/variable_way_and_shot.gin'
 
 #Default values for sampling variable shots / ways

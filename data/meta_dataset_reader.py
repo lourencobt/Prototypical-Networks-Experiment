@@ -6,7 +6,8 @@ import numpy as np
 import tensorflow as tf
 import torch
 
-# ! TO REMOVE WHEN IMPLEMENTATION IS FINISHED # * This environment variables are meant to be defined by the user
+# ! TO REMOVE WHEN IMPLEMENTATION IS FINISHED 
+# # * This environment variables are meant to be defined by the user
 # * of the meta_dataset_reader
 os.environ['META_DATASET_ROOT'] = "/home/guests/lbt/meta-dataset"
 os.environ['RECORDS_ROOT'] = "/home/guests/lbt/data/records"
@@ -31,6 +32,47 @@ from plots import plot_batch, plot_episode
 DATASETS = ['aircraft', 'cu_birds', 'dtd', 'fungi', 'ilsvrc_2012',
                 'omniglot', 'quickdraw', 'vgg_flower']
 DEVICE = 0
+
+#%%
+class MetaDatasetReader():
+  def __init__(self, data_path, mode, shuffle):
+    self.data_path = data_path
+    gin.parse_config_file(GIN_CONFIG_ROOT)
+    self.train_datasets, self.validation_datasets, self.test_datasets = self.get_datasets()
+
+  @gin.configurable("datasets")
+  def get_datasets(self, train_datasets, validation_datasets, test_datasets):
+    """Gets the list of dataset names.
+
+    Args:
+      train_datasets: A string of comma-separated dataset names for training.
+      validation_datasets: A string of comma-separated dataset names for validation.
+      test_datasets: A string of comma-separated dataset names for evaluation.
+
+    Returns:
+      Three lists of dataset names
+    """
+    
+    assert (train_datasets and validation_datasets and test_datasets) is not None
+    assert isinstance((train_datasets and validation_datasets and test_datasets), str)
+
+    train_datasets = [d.strip() for d in train_datasets.split(',')]
+    validation_datasets = [d.strip() for d in validation_datasets.split(',')]
+    test_datasets = [d.strip() for d in test_datasets.split(',')]
+    
+    return train_datasets, validation_datasets, test_datasets
+     
+#%%
+dataset = MetaDatasetReader(META_DATASET_ROOT, "train", False)
+
+
+
+
+
+
+
+
+
 #%%
 gin.parse_config_file(GIN_CONFIG_ROOT)
 
