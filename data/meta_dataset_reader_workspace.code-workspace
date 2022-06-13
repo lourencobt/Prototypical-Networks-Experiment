@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../../meta-dataset"
+		},
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"print.colourScheme": "nnfx"
+	}
+}
