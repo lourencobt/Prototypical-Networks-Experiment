@@ -14,7 +14,7 @@ os.environ['RECORDS_ROOT'] = "/home/guests/lbt/data/records"
 
 # Read Environment Variables to define META_DATASET and RECORDS path
 META_DATASET_ROOT = os.environ['META_DATASET_ROOT']
-RECORDS_ROOT = os.environ['RECORDS_ROOT']
+META_RECORDS_ROOT = os.environ['RECORDS_ROOT']
 
 # Path of the meta_dataset_reader Gin configuration file 
 GIN_CONFIG_ROOT = os.path.abspath('gin/meta_dataset_config.gin')
@@ -40,6 +40,25 @@ class MetaDatasetReader():
     gin.parse_config_file(GIN_CONFIG_ROOT)
     self.train_datasets, self.validation_datasets, self.test_datasets = self.__get_datasets()
 
+  def __get_dataset_spec(self, datasets):
+    """ Gets the list of Dataset Specifications of datasets
+
+    Args:
+      datasets: A list of datasets to load the dataset specification files
+
+    Returns:
+      A list of Dataset Specifications
+    
+    """
+    
+    dataset_specs = []
+    for dataset_name in datasets:
+      dataset_records_path = os.path.join(self.data_path, dataset_name)
+      dataset_spec = dataset_spec_lib.load_dataset_spec(dataset_records_path)
+      dataset_specs.append(dataset_spec)
+    
+    return dataset_specs
+
   @gin.configurable("datasets")
   def __get_datasets(self, train_datasets, validation_datasets, test_datasets):
     """Gets the list of dataset names.
@@ -63,7 +82,7 @@ class MetaDatasetReader():
     return train_datasets, validation_datasets, test_datasets
      
 #%%
-dataset = MetaDatasetReader(META_DATASET_ROOT, "train", False)
+dataset = MetaDatasetReader(META_RECORDS_ROOT, "train", False)
 
 
 
