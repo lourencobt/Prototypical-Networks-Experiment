@@ -38,10 +38,10 @@ class MetaDatasetReader():
   def __init__(self, data_path, mode, shuffle):
     self.data_path = data_path
     gin.parse_config_file(GIN_CONFIG_ROOT)
-    self.train_datasets, self.validation_datasets, self.test_datasets = self.get_datasets()
+    self.train_datasets, self.validation_datasets, self.test_datasets = self.__get_datasets()
 
   @gin.configurable("datasets")
-  def get_datasets(self, train_datasets, validation_datasets, test_datasets):
+  def __get_datasets(self, train_datasets, validation_datasets, test_datasets):
     """Gets the list of dataset names.
 
     Args:
