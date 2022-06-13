@@ -1,6 +1,6 @@
 # Configure the datasets used in training, validation and evaluation phases
-# The train, validation and test datasets need to be a string of comma-separated dataset names
+# The train, val and test datasets need to be a string of comma-separated dataset names
 
 datasets.train_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi'
-datasets.validation_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi'
+datasets.val_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi'
 datasets.test_datasets = 'ilsvrc_2012'
