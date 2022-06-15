@@ -4,29 +4,19 @@ import sys
 import gin
 import numpy as np
 import tensorflow as tf
+
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
 import torch
-
-# ! TO REMOVE WHEN IMPLEMENTATION IS FINISHED 
-# # * This environment variables are meant to be defined by the user
-# * of the meta_dataset_reader
-os.environ['META_DATASET_ROOT'] = "/home/guests/lbt/meta-dataset"
-os.environ['RECORDS_ROOT'] = "/home/guests/lbt/data/records"
-
-# Read Environment Variables to define META_DATASET and RECORDS path
-META_DATASET_ROOT = os.environ['META_DATASET_ROOT']
-META_RECORDS_ROOT = os.environ['RECORDS_ROOT']
-
-# Path of the meta_dataset_reader Gin configuration file 
-GIN_CONFIG_ROOT = os.path.abspath('gin/meta_dataset_config.gin')
+from paths import META_DATASET_ROOT, GIN_CONFIG_ROOT
+from utils import device
 
 sys.path.append(META_DATASET_ROOT)
 from meta_dataset.data import config
 from meta_dataset.data import dataset_spec as dataset_spec_lib
 from meta_dataset.data import learning_spec
 from meta_dataset.data import pipeline
-
-# ! TO REMOVE?
-from plots import plot_batch, plot_episode
 
 #%%
 class MetaDatasetReader():
@@ -47,7 +37,7 @@ class MetaDatasetReader():
     self.shuffle = shuffle
 
     # ! TO REMOVE
-    gin.enter_interactive_mode()
+    # gin.enter_interactive_mode()
 
     gin.parse_config_file(GIN_CONFIG_ROOT)
     self.train_datasets, self.val_datasets, self.test_datasets = self._get_datasets()
@@ -99,6 +89,18 @@ class MetaDatasetReader():
     
     return train_datasets, val_datasets, test_datasets
 
+  def _to_torch(self, sample):
+    for key, val in sample.items():
+        if isinstance(val, str):
+            continue
+        val = torch.from_numpy(val.numpy())
+        if 'image' in key:
+            val = val.permute(0, 3, 1, 2)
+        else:
+            val = val.long()
+        sample[key] = val.to(device)
+    return sample
+
 class MetaDatasetEpisodeReader(MetaDatasetReader):
   """
   Class that wraps the Meta-Dataset episode readers.
@@ -118,7 +120,6 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
     self.episode_description = config.EpisodeDescriptionConfig()
 
     # ! Use single dataset for fixed 'num_ways', since using multiple datasets is not supported/tested. 
-
     if self.mode == 'train':
       self.split = learning_spec.Split.TRAIN
       if len(self.train_datasets) == 1:
@@ -142,6 +143,20 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
 
     else:
       raise Exception("Invalid Mode. The available modes are: 'train', 'val' or 'test'.")
+
+  def get_iterator(self, n):
+    for idx, (episode, source_id) in enumerate(self.episodic_dataset):
+      if idx == n:
+        break
+      task_dict = {
+        'context_images': episode[0],
+        'context_labels': episode[1],
+        'context_gt': episode[2],
+        'target_images': episode[3],
+        'target_labels': episode[4],
+        'target_gt': episode[5]
+        }  
+      yield idx, self._to_torch(task_dict)
 
   def create_multisource_episode_dataset(self, datasets):
     """ Create a multi source episode dataset, aka, pipeline
@@ -170,7 +185,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       use_dag_ontology_list[imagenet_index] = True
 
     if self.shuffle:
-      dataset_episodic = pipeline.make_multisource_episode_pipeline(
+      episodic_dataset = pipeline.make_multisource_episode_pipeline(
         dataset_spec_list=self.dataset_specs, 
         use_dag_ontology_list=use_dag_ontology_list,
         use_bilevel_ontology_list=use_bilevel_ontology_list,
@@ -182,7 +197,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         read_buffer_size_bytes=self.data_config.read_buffer_size_bytes
       )
     else:
-      dataset_episodic = pipeline.make_multisource_episode_pipeline(
+      episodic_dataset = pipeline.make_multisource_episode_pipeline(
         dataset_spec_list=self.dataset_specs, 
         use_dag_ontology_list=use_dag_ontology_list,
         use_bilevel_ontology_list=use_bilevel_ontology_list,
@@ -193,7 +208,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         read_buffer_size_bytes=self.data_config.read_buffer_size_bytes
       )
 
-    return dataset_episodic
+    return episodic_dataset
 
   def create_singlesource_episode_dataset(self, dataset):
     """ Create a single source episode dataset, aka, pipeline
@@ -221,7 +236,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       use_dag_ontology = True
 
     if self.shuffle:
-      dataset_episodic = pipeline.make_one_source_episode_pipeline(
+      episodic_dataset = pipeline.make_one_source_episode_pipeline(
         dataset_spec = self.dataset_spec,
         use_dag_ontology = use_dag_ontology,
         use_bilevel_ontology = use_bilevel_ontology,
@@ -233,7 +248,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
       )
     else:
-        dataset_episodic = pipeline.make_one_source_episode_pipeline(
+        episodic_dataset = pipeline.make_one_source_episode_pipeline(
         dataset_spec = self.dataset_spec,
         use_dag_ontology = use_dag_ontology,
         use_bilevel_ontology = use_bilevel_ontology,
@@ -244,14 +259,4 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
       )
 
-    return dataset_episodic
-
-
-#%%
-dataset = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "train", False)
-
-#%%
-val_dataset = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "val", False)
-
-#%% 
-test_dataset = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "test", False)
+    return episodic_dataset

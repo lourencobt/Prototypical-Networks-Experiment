@@ -1,8 +1,8 @@
 import meta_dataset.data.config
 import meta_dataset.data.decoder
 
-include 'gin/datasets.gin'
-include 'gin/variable_way_and_shot.gin'
+include 'data/gin/datasets.gin'
+include 'data/gin/variable_way_and_shot.gin'
 
 #Default values for sampling variable shots / ways
 EpisodeDescriptionConfig.min_ways = 5
@@ -35,7 +35,7 @@ DataConfig.shuffle_buffer_size = 1000
 # However, if None, a sensible default for both local and remote file systems is used.
 # DataConfig.read_buffer_size_bytes = 1048576  # 1 MB (1024**2)
 DataConfig.read_buffer_size_bytes = None
-DataConfig.num_prefetch = 64
+DataConfig.num_prefetch = 0
 
 # If we decode features then change the lines below to use FeatureDecoder.
 process_episode.support_decoder = @support/ImageDecoder()
