@@ -2,7 +2,6 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def plot_episode(support_images, support_class_ids, query_images,
                  query_class_ids, size_multiplier=1, max_imgs_per_col=10,
                  max_imgs_per_row=10):

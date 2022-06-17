@@ -1,4 +1,10 @@
-#%%
+# Meta Dataset Reader - based on: 
+#   https://github.com/peymanbateni/simple-cnaps/blob/master/simple-cnaps-src/meta_dataset_reader.py
+#   https://github.com/VICO-UoE/URL/blob/master/data/meta_dataset_reader.py
+#   https://github.com/google-research/meta-dataset/blob/main/Intro_to_Metadataset.ipynb
+#
+# This Reader is prepared to read Episodes and Batches (Currently, not available) from .tfrecords datasets, where each .tfrecord file has all the images from a specific class. To know more, explore https://github.com/google-research/meta-dataset/.
+
 import os
 import sys
 import gin
@@ -18,7 +24,6 @@ from meta_dataset.data import dataset_spec as dataset_spec_lib
 from meta_dataset.data import learning_spec
 from meta_dataset.data import pipeline
 
-#%%
 class MetaDatasetReader():
   """
   Class to be inherited by different types of MetaDatasetReaders, for example, episode or batch readers
@@ -149,14 +154,14 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       if idx == n:
         break
       task_dict = {
-        'context_images': episode[0],
-        'context_labels': episode[1],
-        'context_gt': episode[2],
-        'target_images': episode[3],
-        'target_labels': episode[4],
-        'target_gt': episode[5]
+        'support_images': episode[0],
+        'support_labels': episode[1],
+        'support_gt': episode[2],
+        'query_images': episode[3],
+        'query_labels': episode[4],
+        'query_gt': episode[5]
         }  
-      yield idx, self._to_torch(task_dict)
+      yield idx, (self._to_torch(task_dict), source_id)
 
   def create_multisource_episode_dataset(self, datasets):
     """ Create a multi source episode dataset, aka, pipeline
