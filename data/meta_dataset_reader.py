@@ -24,6 +24,8 @@ from meta_dataset.data import dataset_spec as dataset_spec_lib
 from meta_dataset.data import learning_spec
 from meta_dataset.data import pipeline
 
+SAMPLING_SEED = 1234
+
 class MetaDatasetReader():
   """
   Class to be inherited by different types of MetaDatasetReaders, for example, episode or batch readers
@@ -117,7 +119,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
     Args:
       data_path: A string, the path to the Records Folder 
       mode: A string, the mode of the data processing pipeline. Options: "train", "val" or "test" modes. 
-      shuffle: A bool, shuffle or not the dataset samples
+      shuffle: A bool, decides to shuffle or not the datasets from which to extract the data and also the samples from each dataset
     """
     super().__init__(data_path, mode, shuffle)
     # Create an Episode Description that is an instance of EpisodeDescriptionConfig that stores the attributes
@@ -210,7 +212,9 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         episode_descr_config=self.episode_description,
         image_size=self.data_config.image_height,
         num_prefetch=self.data_config.num_prefetch,
-        read_buffer_size_bytes=self.data_config.read_buffer_size_bytes
+        read_buffer_size_bytes=self.data_config.read_buffer_size_bytes, 
+        source_sampling_seed=SAMPLING_SEED,
+        episode_sampling_seed=SAMPLING_SEED
       )
 
     return episodic_dataset
@@ -261,7 +265,8 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         episode_descr_config = self.episode_description,
         image_size = self.data_config.image_height,
         num_prefetch = self.data_config.num_prefetch, 
-        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
+        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes,
+        source_sampling_seed=1234
       )
 
     return episodic_dataset

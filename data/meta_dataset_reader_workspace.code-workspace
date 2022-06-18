@@ -1,13 +1,14 @@
 {
 	"folders": [
 		{
-			"path": "../../meta-dataset"
+			"path": ".."
 		},
 		{
-			"path": ".."
+			"path": "../../meta-dataset"
 		}
 	],
 	"settings": {
-		"print.colourScheme": "nnfx"
+		"print.colourScheme": "nnfx",
+		"explorer.autoReveal": false
 	}
 }
