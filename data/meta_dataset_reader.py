@@ -265,8 +265,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
         episode_descr_config = self.episode_description,
         image_size = self.data_config.image_height,
         num_prefetch = self.data_config.num_prefetch, 
-        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes,
-        source_sampling_seed=1234
+        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
       )
 
     return episodic_dataset

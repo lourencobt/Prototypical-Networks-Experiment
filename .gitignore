@@ -130,6 +130,7 @@ dmypy.json
 
 # Ignore vscode
 .vscode/
+*.code-workspace
 
 # Ignore datasets.txt
 dataset*.txt
