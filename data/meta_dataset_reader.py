@@ -12,7 +12,8 @@ import numpy as np
 import tensorflow as tf
 
 physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+for device in physical_devices:
+  tf.config.experimental.set_memory_growth(device, True)
 
 import torch
 from paths import META_DATASET_ROOT, GIN_CONFIG_ROOT
@@ -23,7 +24,7 @@ from meta_dataset.data import config
 from meta_dataset.data import dataset_spec as dataset_spec_lib
 from meta_dataset.data import learning_spec
 from meta_dataset.data import pipeline
-
+ 
 SAMPLING_SEED = 1234
 
 class MetaDatasetReader():
@@ -96,18 +97,6 @@ class MetaDatasetReader():
     
     return train_datasets, val_datasets, test_datasets
 
-  def _to_torch(self, sample):
-    for key, val in sample.items():
-        if isinstance(val, str):
-            continue
-        val = torch.from_numpy(val.numpy())
-        if 'image' in key:
-            val = val.permute(0, 3, 1, 2)
-        else:
-            val = val.long()
-        sample[key] = val.to(device)
-    return sample
-
 class MetaDatasetEpisodeReader(MetaDatasetReader):
   """
   Class that wraps the Meta-Dataset episode readers.
@@ -125,7 +114,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
     # Create an Episode Description that is an instance of EpisodeDescriptionConfig that stores the attributes
     # present in the meta_dataset_config gin file
     self.episode_description = config.EpisodeDescriptionConfig()
-
+    
     # ! Use single dataset for fixed 'num_ways', since using multiple datasets is not supported/tested. 
     if self.mode == 'train':
       self.split = learning_spec.Split.TRAIN
@@ -136,7 +125,6 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
 
     elif self.mode == 'val':
       self.split = learning_spec.Split.VALID
-
       for dataset_name in self.val_datasets:
         dataset = self.create_singlesource_episode_dataset(dataset_name)
         self.datasets_dict[dataset_name] = dataset
@@ -151,19 +139,43 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
     else:
       raise Exception("Invalid Mode. The available modes are: 'train', 'val' or 'test'.")
 
-  def get_iterator(self, n):
-    for idx, (episode, source_id) in enumerate(self.episodic_dataset):
-      if idx == n:
-        break
-      task_dict = {
-        'support_images': episode[0],
-        'support_labels': episode[1],
-        'support_gt': episode[2],
-        'query_images': episode[3],
-        'query_labels': episode[4],
-        'query_gt': episode[5]
-        }  
-      yield idx, (self._to_torch(task_dict), source_id)
+  def get_train_iterator(self, n):
+    if self.mode == "train":
+      for idx, (episode, source_id) in enumerate(self.episodic_dataset):
+        if idx == n:
+          break
+        task_dict = {
+          'support_images': episode[0].numpy(),
+          'support_labels': episode[1].numpy(),
+          'support_gt': episode[2].numpy(),
+          'query_images': episode[3].numpy(),
+          'query_labels': episode[4].numpy(),
+          'query_gt': episode[5].numpy()
+          }  
+        source_id.numpy()
+
+        yield idx, (task_dict, source_id)
+      else:
+        raise Exception("Invalid Iterator. Use get_val_or_test_iterator")
+
+  def get_val_or_test_iterator(self, dataset, n):
+    if self.mode == "val" or self.mode == "test":
+      for idx, (episode, source_id) in enumerate(self.datasets_dict[dataset]):
+        if idx == n:
+          break
+        task_dict = {
+          'support_images': episode[0].numpy(),
+          'support_labels': episode[1].numpy(),
+          'support_gt': episode[2].numpy(),
+          'query_images': episode[3].numpy(),
+          'query_labels': episode[4].numpy(),
+          'query_gt': episode[5].numpy()
+          }  
+        source_id.numpy()
+
+        yield idx, (task_dict, source_id)
+      else:
+        raise Exception("Invalid Iterator. Use get_val_or_test_iterator")
 
   def create_multisource_episode_dataset(self, datasets):
     """ Create a multi source episode dataset, aka, pipeline
@@ -178,7 +190,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       A Dataset instance that outputs tuples of fully-assembled and decoded
       episodes zipped with the ID of their data source of origin.
     """
-    self.dataset_specs = self._get_dataset_specs(self.train_datasets)
+    dataset_specs = self._get_dataset_specs(self.train_datasets)
 
     use_bilevel_ontology_list = [False]*len(datasets)
     use_dag_ontology_list = [False]*len(datasets)
@@ -193,7 +205,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
 
     if self.shuffle:
       episodic_dataset = pipeline.make_multisource_episode_pipeline(
-        dataset_spec_list=self.dataset_specs, 
+        dataset_spec_list=dataset_specs, 
         use_dag_ontology_list=use_dag_ontology_list,
         use_bilevel_ontology_list=use_bilevel_ontology_list,
         split=self.split, 
@@ -205,7 +217,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       )
     else:
       episodic_dataset = pipeline.make_multisource_episode_pipeline(
-        dataset_spec_list=self.dataset_specs, 
+        dataset_spec_list=dataset_specs, 
         use_dag_ontology_list=use_dag_ontology_list,
         use_bilevel_ontology_list=use_bilevel_ontology_list,
         split=self.split, 
@@ -233,7 +245,7 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
       episodes zipped with the ID of their data source of origin.
     """
 
-    self.dataset_spec = self._get_dataset_specs(dataset)
+    dataset_spec = self._get_dataset_specs(dataset)
 
     use_bilevel_ontology = False
     use_dag_ontology = False
@@ -246,26 +258,27 @@ class MetaDatasetEpisodeReader(MetaDatasetReader):
 
     if self.shuffle:
       episodic_dataset = pipeline.make_one_source_episode_pipeline(
-        dataset_spec = self.dataset_spec,
+        dataset_spec = dataset_spec,
         use_dag_ontology = use_dag_ontology,
         use_bilevel_ontology = use_bilevel_ontology,
         split = self.split,
         episode_descr_config = self.episode_description,
         image_size = self.data_config.image_height,
         num_prefetch = self.data_config.num_prefetch, 
-        suffle_buffer_size = self.data_config.shuffle_buffer_size,
+        shuffle_buffer_size = self.data_config.shuffle_buffer_size,
         read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
       )
     else:
-        episodic_dataset = pipeline.make_one_source_episode_pipeline(
-        dataset_spec = self.dataset_spec,
+      episodic_dataset = pipeline.make_one_source_episode_pipeline(
+        dataset_spec = dataset_spec,
         use_dag_ontology = use_dag_ontology,
         use_bilevel_ontology = use_bilevel_ontology,
         split = self.split,
         episode_descr_config = self.episode_description,
         image_size = self.data_config.image_height,
         num_prefetch = self.data_config.num_prefetch, 
-        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes
+        read_buffer_size_bytes = self.data_config.read_buffer_size_bytes, 
+        episode_sampling_seed=SAMPLING_SEED
       )
 
     return episodic_dataset

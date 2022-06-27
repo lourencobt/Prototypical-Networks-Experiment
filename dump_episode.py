@@ -15,11 +15,11 @@ dataset = []
 for idx, (task, source_id) in tqdm(train_loader.get_iterator(10)): 
   for key, val in task.items():
     task[key] = val.cpu().numpy()
-
+  
   dataset.append((idx, (task, source_id)))
 
 #%%
-with open('dataset84.txt', 'wb') as f:
+with open('dataset224.txt', 'wb') as f:
   pickle.dump(dataset, f)
 
   # print('Episode id: %d from source %s' % (idx, train_loader.dataset_specs[source_id].name ))

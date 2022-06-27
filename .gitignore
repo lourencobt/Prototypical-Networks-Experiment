@@ -134,3 +134,4 @@ dmypy.json
 
 # Ignore datasets.txt
 dataset*.txt
+/checkpoints

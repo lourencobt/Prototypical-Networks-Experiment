@@ -67,43 +67,38 @@ def pairwise_distances(x: torch.Tensor,
 
 # Based on https://github.com/google-research/meta-dataset/blob/13fd952585ca0928ba313fe56874081fa7fff7f0/meta_dataset/learner.py#L1194
 class PrototypicalNetwork(nn.Module):
-    def __init__(self, encoder, similarity_metric, loss_fn ) -> None:
+    def __init__(self, encoder, matching_fn) -> None:
         super(PrototypicalNetwork, self).__init__()
 
         self.encoder = encoder
-        self.similarity_metric = similarity_metric
-        # ! Expected to be Cross Entropy Loss
-        self.loss_fn = loss_fn
+        self.matching_fn = matching_fn
 
-    def forward(self, support_images, support_labels, query_images, query_labels):
+    def forward(self, support_images, support_labels, query_images):
         self.support_images = support_images
         self.support_labels = support_labels
         self.query_images = query_images
-        self.query_labels = query_labels
-    
-        self.support_embeddings = self.encoder(self.support_images)
-        self.query_embeddings = self.encoder(self.query_images)
-    
-    def loss(self):
 
+        # Embedding the images
+        support_embeddings = self.encoder(self.support_images)
+        query_embeddings = self.encoder(self.query_images)
+
+        # Computing Prototypes 
         support_labels_one_hot = nn.functional.one_hot(self.support_labels, -1)
-        self.prototypes = compute_prototypes(self.support_embeddings, support_labels_one_hot)
+        prototypes = compute_prototypes(support_embeddings, support_labels_one_hot)
 
-        self.logits = self.compute_logits()
-        
-        loss = self.loss_fn(self.logits, self.query_labels)
+        # Compute logits (in Prototypical Networls logits are the pairwise distances between the prototypes and the query embeddings)
+        logits = self.compute_logits(prototypes, query_embeddings)
 
-        # return self.logits, self.log_p_y
-        return loss
+        return logits
 
-    def compute_logits(self):
-        distances = pairwise_distances(self.query_embeddings, self.prototypes, self.similarity_metric)
+    def compute_logits(self, prototypes, query_embeddings):
+        distances = pairwise_distances(query_embeddings, prototypes, self.matching_fn)
 
         logits = -distances
         return logits
     
-    def accuracy(self):
-        self.query_labels_pred = self.logits.argmax(1)
-        correct = torch.eq(self.query_labels_pred, self.query_labels)
+    def accuracy(self, logits, query_labels):
+        query_labels_pred = logits.argmax(1)
+        correct = torch.eq(query_labels_pred, query_labels)
         
         return correct.float().mean()

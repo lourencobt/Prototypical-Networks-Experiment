@@ -29,7 +29,7 @@ EpisodeDescriptionConfig.simclr_episode_fraction = 0.0
 # train/EpisodeDescriptionConfig.max_ways_upper_bound = 50
 
 # Other default values for the data pipeline.
-DataConfig.image_height = 84
+DataConfig.image_height = 224
 DataConfig.shuffle_buffer_size = 1000
 # It is possible to change the value of read_buffer_size_bytes
 # However, if None, a sensible default for both local and remote file systems is used.
