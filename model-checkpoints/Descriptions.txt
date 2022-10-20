@@ -1,0 +1,8 @@
+-> ProtoNet-Meta-PretrainedImagenetResnet.pt
+        Prototypical Network
+        Embedding Function - Pretrained on "IMAGENET1K_V1" Pytorch Resnet18 
+        FineTuning on MetaDataset 
+        Optimizer = adam
+        Learning Rate = 0.0001
+        Momentum = 0
+        Weight Decay = 0.00001
