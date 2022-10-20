@@ -3,4 +3,4 @@
 
 datasets.train_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi'
 datasets.val_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi'
-datasets.test_datasets = 'ilsvrc_2012'
+datasets.test_datasets = 'ilsvrc_2012,aircraft,cu_birds,omniglot,quickdraw,vgg_flower,dtd,fungi,mscoco,traffic_sign'

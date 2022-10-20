@@ -1,0 +1,7 @@
+# Configure the datasets used in training, validation and evaluation phases
+# The train, val and test datasets need to be a string of comma-separated dataset names
+
+datasets.train_datasets = 'breast_train,covid_train,elbow_train,finger_train,forearm_train,hand_train,humerus_train,shoulder_train,wrist_train,skinlesion_train,tuberculosis_train'
+datasets.val_datasets = 'breast_val,covid_val,elbow_val,finger_val,forearm_val,hand_val,humerus_val,shoulder_val,wrist_val,skinlesion_val,tuberculosis_val'
+# datasets.test_datasets = 'breast_test,covid_test,elbow_test,finger_test,forearm_test,hand_test,humerus_test,shoulder_test,wrist_test,skinlesion_test,tuberculosis_test'
+datasets.test_datasets = 'breast_full,covid_full,elbow_full,finger_full,forearm_full,hand_full,humerus_full,shoulder_full,wrist_full,skinlesion_full,tuberculosis_full'

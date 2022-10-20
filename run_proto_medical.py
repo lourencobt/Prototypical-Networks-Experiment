@@ -3,6 +3,7 @@
 # simplecnaps - https://github.com/plai-group/simple-cnaps 
 
 from datetime import datetime
+from matplotlib import pyplot as plt
 import torch
 import numpy as np
 import argparse
@@ -12,10 +13,11 @@ from tqdm import tqdm
 from paths import META_RECORDS_ROOT
 from utils import ValidationAccuracies, get_checkpoint_files, device
 from models.proto_net import PrototypicalNetwork
-from data.meta_dataset_reader import MetaDatasetEpisodeReader
+from data.meta_dataset_reader_medical import MetaDatasetEpisodeReader
 from torchvision import  models, transforms
 
 import wandb
+from time import sleep
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Quiet TensorFlow warnings
 
@@ -32,7 +34,8 @@ class Learner:
     def __init__(self):
         self.args = self.parse_command_line()
 
-        wandb.init(project="protonet", config=self.args)
+        sleep(5)
+        wandb.init(project="protonet_medical_3takes", config=self.args)
 
         self.checkpoint_dir, self.checkpoint_path_validation, self.checkpoint_path_final \
             = get_checkpoint_files(self.args.checkpoint_dir, self.args.experiment_name)
@@ -44,13 +47,13 @@ class Learner:
         
         #Load Data
         if "train" in self.args.mode:
-            self.train_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "train", self.args.shuffle)
-            self.val_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "val", self.args.shuffle)
+            self.train_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "train", self.args.shuffle, num_support=self.args.num_support, num_query=self.args.num_query)
+            self.val_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "val", self.args.shuffle, num_support=self.args.num_support, num_query=self.args.num_query)
 
             self.validation_accuracies = ValidationAccuracies(self.val_loader.val_datasets)
             
         elif "test" in self.args.mode:
-            self.test_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "test", self.args.shuffle)
+            self.test_loader = MetaDatasetEpisodeReader(META_RECORDS_ROOT, "test", self.args.shuffle, num_support=self.args.num_support, num_query=self.args.num_query)
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
         if self.args.optimizer == 'sgd':
@@ -79,6 +82,10 @@ class Learner:
                             help="Distance metric/similarity score to compute between prototypes and query embeddings. Can be 'l2', 'cosine' and 'dot'")
         parser.add_argument("--checkpoint_dir", "-c", default='./checkpoints', help="Directory to save checkpoint to.")
         parser.add_argument("--test_model_path", "-m", default=None, help="Path to model to load and test.")
+        parser.add_argument("--num_support", type=int, default=None,
+                            help="Number of images in each support class")
+        parser.add_argument("--num_query", type=int, default=None,
+                            help="Number of query images")
         parser.add_argument("--shuffle", action='store_true',
                             help="As per default, shuffles composition and sampling of episodes. Set False to research purposes.")
 
@@ -202,7 +209,7 @@ class Learner:
 
                     accuracies.append(task_accuracy.cpu())
                     accuracies = accuracies
-                    # ! Is this needed?
+
                     del target_logits
             
                 accuracy = np.array(accuracies).mean() * 100.0
@@ -235,7 +242,6 @@ class Learner:
         print("")  # add a blank line
         print('Testing model {0:}: '.format(path))
 
-        self.model.eval()
         with torch.no_grad():
             for dataset in self.test_loader.test_datasets:
                 accuracies = []
@@ -249,8 +255,7 @@ class Learner:
                     task_accuracy = self.model.accuracy(target_logits, query_labels)
 
                     accuracies.append(task_accuracy.cpu())
-                    wandb.log({f"test_{dataset}_acc":task_accuracy.cpu()})
-                    accuracies = accuracies
+                    wandb.log({f"{dataset}_test_acc":task_accuracy.cpu()*100})
 
                 accuracy = np.array(accuracies).mean() * 100.0
                 accuracy_confidence = (196.0 * np.array(accuracies).std()) / np.sqrt(len(accuracies))
