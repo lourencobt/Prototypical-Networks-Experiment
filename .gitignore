@@ -136,3 +136,4 @@ dmypy.json
 dataset*.txt
 /checkpoints
 /wandb
+ª.pt
